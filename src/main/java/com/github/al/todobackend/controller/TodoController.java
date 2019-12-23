@@ -86,12 +86,17 @@ public class TodoController implements TodoOperations {
         return HttpResponse.noContent();
     }
 
+    @Override
+    public HttpResponse<String> options() {
+        return HttpResponse.ok();
+    }
+
     private URI createdUri(HttpRequest<?> http, Todo todo) {
         return UriBuilder.of(http.getUri()).path(todo.getId().toString()).build();
     }
 
     @Error(status = HttpStatus.NOT_FOUND)
-    public HttpResponse<JsonError> notFound(HttpRequest request) {
+    public HttpResponse<JsonError> notFound(HttpRequest<?> request) {
         JsonError error = new JsonError("Todo Not Found").link(Link.SELF, Link.of(request.getUri()));
         return HttpResponse.<JsonError>notFound().body(error);
     }

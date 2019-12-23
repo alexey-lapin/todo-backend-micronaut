@@ -27,4 +27,6 @@ public interface TodoOperations {
     @Delete("/{id}")
     HttpResponse<String> deleteById(@NotNull UUID id);
 
+    @Options("/")
+    HttpResponse<String> options();
 }
