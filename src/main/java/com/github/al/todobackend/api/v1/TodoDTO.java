@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
 
+import javax.validation.constraints.NotNull;
 import java.net.URI;
 import java.util.UUID;
 
@@ -14,7 +15,9 @@ import java.util.UUID;
 @Introspected
 public class TodoDTO {
 
+    @NotNull
     private UUID id;
+    @NotNull
     private String title;
     private Boolean completed;
     private URI url;

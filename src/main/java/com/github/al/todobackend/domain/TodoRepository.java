@@ -7,8 +7,4 @@ import java.util.UUID;
 
 @Repository
 public interface TodoRepository extends PageableRepository<Todo, UUID> {
-
-//    Page<TodoDTO> find(Pageable pageable);
-
-//    TodoDTO save(Todo entity);
 }

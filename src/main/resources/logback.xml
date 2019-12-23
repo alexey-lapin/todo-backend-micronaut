@@ -15,4 +15,5 @@
     </root>
     <!--<logger name="io.micronaut.context" level="TRACE"/>-->
 <!--    <logger name="io.micronaut.http.server.netty.RoutingInBoundHandler" level="DEBUG"/>-->
+<!--    <logger name="io.micronaut.http.client" level="TRACE"/>-->
 </configuration>

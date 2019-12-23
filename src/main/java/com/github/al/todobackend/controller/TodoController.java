@@ -9,13 +9,17 @@ import com.github.al.todobackend.domain.TodoMapper;
 import com.github.al.todobackend.domain.TodoRepository;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
+import io.micronaut.http.annotation.Error;
+import io.micronaut.http.context.ServerRequestContext;
+import io.micronaut.http.hateoas.JsonError;
+import io.micronaut.http.hateoas.Link;
 import io.micronaut.http.server.util.HttpHostResolver;
 import io.micronaut.http.uri.UriBuilder;
 import io.micronaut.validation.Validated;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
@@ -23,7 +27,6 @@ import java.net.URI;
 import java.util.Optional;
 import java.util.UUID;
 
-@Slf4j
 @RequiredArgsConstructor
 @Validated
 @Controller("/todos")
@@ -40,12 +43,19 @@ public class TodoController implements TodoOperations {
     }
 
     @Override
-    public Optional<TodoDTO> findById(@NotNull UUID id) {
-        return todoRepository.findById(id).map(todoMapper::toDTO);
+    public HttpResponse<TodoDTO> findById(@NotNull UUID id) {
+        Optional<Todo> existingTodo = todoRepository.findById(id);
+        if (existingTodo.isPresent()) {
+            return HttpResponse.ok(todoMapper.toDTO(existingTodo.get()));
+        } else {
+            return HttpResponse.notFound();
+        }
     }
 
     @Override
-    public HttpResponse<TodoDTO> create(@Body @NotNull @Valid CreateTodoCommand body, HttpRequest<?> httpRequest) {
+    public HttpResponse<TodoDTO> create(@Body @NotNull @Valid CreateTodoCommand body) {
+        HttpRequest<Object> httpRequest = ServerRequestContext.currentRequest()
+                .orElseThrow(() -> new RuntimeException("no request context available"));
         String basePath = httpHostResolver.resolve(httpRequest) + httpRequest.getPath();
         Todo todo = todoMapper.fromCreateCommand(body, basePath);
         Todo result = todoRepository.save(todo);
@@ -53,11 +63,15 @@ public class TodoController implements TodoOperations {
     }
 
     @Override
-    public HttpResponse<TodoDTO> updateById(@NotNull UUID id, @Body @NotNull UpdateTodoCommand request) {
-        Todo oldTodo = todoRepository.findById(id).orElseThrow(() -> new RuntimeException("not exists"));
-        Todo todo = todoMapper.fromUpdateCommand(request, oldTodo);
-        Todo result = todoRepository.update(todo);
-        return HttpResponse.ok(todoMapper.toDTO(result));
+    public HttpResponse<TodoDTO> updateById(@NotNull UUID id, @Body @NotNull @Valid UpdateTodoCommand body) {
+        Optional<Todo> existingTodo = todoRepository.findById(id);
+        if (existingTodo.isPresent()) {
+            Todo todo = todoMapper.fromUpdateCommand(body, existingTodo.get());
+            Todo result = todoRepository.update(todo);
+            return HttpResponse.ok(todoMapper.toDTO(result));
+        } else {
+            return HttpResponse.notFound();
+        }
     }
 
     @Override
@@ -72,12 +86,14 @@ public class TodoController implements TodoOperations {
         return HttpResponse.noContent();
     }
 
-    @Override
-    public HttpResponse<String> optionsById() {
-        return HttpResponse.ok();
-    }
-
     private URI createdUri(HttpRequest<?> http, Todo todo) {
         return UriBuilder.of(http.getUri()).path(todo.getId().toString()).build();
     }
+
+    @Error(status = HttpStatus.NOT_FOUND)
+    public HttpResponse<JsonError> notFound(HttpRequest request) {
+        JsonError error = new JsonError("Todo Not Found").link(Link.SELF, Link.of(request.getUri()));
+        return HttpResponse.<JsonError>notFound().body(error);
+    }
+
 }
