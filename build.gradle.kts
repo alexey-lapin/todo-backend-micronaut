@@ -1,10 +1,10 @@
 plugins {
     application
-    id("com.github.johnrengelman.shadow") version "5.2.0"
-    id("net.ltgt.apt-eclipse") version "0.21"
+    id("com.github.ben-manes.versions")
+    id("com.github.johnrengelman.shadow")
 }
 
-val micronautVersion = "1.3.0.M1"
+val micronautVersion = "2.2.3"
 
 repositories {
     mavenCentral()
@@ -12,8 +12,8 @@ repositories {
 }
 
 dependencies {
-    annotationProcessor("org.projectlombok:lombok:1.18.10")
-    compileOnly("org.projectlombok:lombok:1.18.10")
+    annotationProcessor("org.projectlombok:lombok:1.18.16")
+    compileOnly("org.projectlombok:lombok:1.18.16")
 
     annotationProcessor(platform("io.micronaut:micronaut-bom:$micronautVersion"))
     annotationProcessor("io.micronaut:micronaut-inject-java")
@@ -21,13 +21,13 @@ dependencies {
     annotationProcessor("io.micronaut.data:micronaut-data-processor")
 
     implementation(platform("io.micronaut:micronaut-bom:$micronautVersion"))
-    implementation("io.micronaut.configuration:micronaut-jdbc-tomcat")
-    implementation("io.micronaut.data:micronaut-data-hibernate-jpa")
     implementation("io.micronaut:micronaut-http-client")
     implementation("io.micronaut:micronaut-http-server-netty")
     implementation("io.micronaut:micronaut-inject")
     implementation("io.micronaut:micronaut-runtime")
     implementation("io.micronaut:micronaut-validation")
+    implementation("io.micronaut.data:micronaut-data-hibernate-jpa")
+    implementation("io.micronaut.sql:micronaut-jdbc-hikari")
     implementation("javax.annotation:javax.annotation-api")
 
     runtimeOnly("ch.qos.logback:logback-classic:1.2.3")
@@ -38,8 +38,9 @@ dependencies {
 
     testImplementation(platform("io.micronaut:micronaut-bom:$micronautVersion"))
     testImplementation("io.micronaut.test:micronaut-test-junit5")
-    testImplementation("org.assertj:assertj-core:3.14.0")
+    testImplementation("org.assertj:assertj-core:3.18.1")
     testImplementation("org.junit.jupiter:junit-jupiter-api")
+
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 }
 
@@ -59,6 +60,22 @@ tasks {
 
     test {
         useJUnitPlatform()
+    }
+
+    dependencyUpdates {
+        checkConstraints = true
+        resolutionStrategy {
+            componentSelection {
+                all {
+                    val rejected = listOf("alpha", "beta", "rc", "cr", "m", "preview", "b", "ea")
+                        .map { qualifier -> Regex("(?i).*[.-]$qualifier[.\\d-+]*") }
+                        .any { it.matches(candidate.version) }
+                    if (rejected) {
+                        reject("Release candidate")
+                    }
+                }
+            }
+        }
     }
 
     // used by Heroku
